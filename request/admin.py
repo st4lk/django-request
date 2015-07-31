@@ -14,13 +14,15 @@ from request.plugins import *
 
 
 class RequestAdmin(admin.ModelAdmin):
-    list_display = ('time', 'path', 'response', 'method', 'request_from')
+    list_display = ('time', 'path', 'response_code', 'response', 'method', 'request_from')
     fieldsets = (
         (_('Request'), {
-            'fields': ('method', 'path', 'time', 'is_secure', 'is_ajax')
+            'fields': ('method', 'path', 'time', 'is_secure', 'is_ajax',
+                       'request_get', 'request_post', 'request_body')
         }),
         (_('Response'), {
-            'fields': ('response',)
+            'fields': ('response', 'response_code', 'response_content',
+                       'response_data')
         }),
         (_('User info'), {
             'fields': ('referer', 'user_agent', 'ip', 'user', 'language')
@@ -30,12 +32,12 @@ class RequestAdmin(admin.ModelAdmin):
     readonly_fields = ('time',)
 
     def lookup_allowed(self, key, value):
-        return key == 'user__username' or super(RequestAdmin, self).lookup_allowed(key, value)
+        return key == 'user__email' or super(RequestAdmin, self).lookup_allowed(key, value)
 
     def request_from(self, obj):
         if obj.user_id:
             user = obj.get_user()
-            return '<a href="?user__username=%s" title="%s">%s</a>' % (user.username, _('Show only requests from this user.'), user)
+            return '<a href="?user__email=%s" title="%s">%s</a>' % (user.email, _('Show only requests from this user.'), user)
         return '<a href="?ip=%s" title="%s">%s</a>' % (obj.ip, _('Show only requests from this IP address.'), obj.ip)
     request_from.short_description = 'From'
     request_from.allow_tags = True

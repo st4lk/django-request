@@ -1,4 +1,6 @@
+# -*- coding: utf-8 -*-
 from socket import gethostbyaddr
+import logging
 
 from django.db import models
 from django.conf import settings
@@ -9,13 +11,16 @@ from request.managers import RequestManager
 from request.utils import HTTP_STATUS_CODES, browsers, engines
 from request import settings as request_settings
 
+l = logging.getLogger(__name__)
 
 AUTH_USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
+CUT_DATA_INDEX = getattr(settings, 'REQUST_LOG_CUT_DATA_INDEX', 8192)
 
 
 class Request(models.Model):
     # Response infomation
     response = models.SmallIntegerField(_('response'), choices=HTTP_STATUS_CODES, default=200)
+    response_code = models.SmallIntegerField(u'Код ответа', default=200)
 
     # Request infomation
     method = models.CharField(_('method'), default='GET', max_length=7)
@@ -31,6 +36,14 @@ class Request(models.Model):
     referer = models.URLField(_('referer'), max_length=255, blank=True, null=True)
     user_agent = models.CharField(_('user agent'), max_length=255, blank=True, null=True)
     language = models.CharField(_('language'), max_length=255, blank=True, null=True)
+
+    # Detailed data
+    request_get = models.TextField(blank=True, null=True)
+    request_post = models.TextField(blank=True, null=True)
+    request_body = models.TextField(blank=True, null=True)
+
+    response_content = models.TextField(blank=True, null=True)
+    response_data = models.TextField(blank=True, null=True)
 
     objects = RequestManager()
 
@@ -65,9 +78,44 @@ class Request(models.Model):
 
         if response:
             self.response = response.status_code
+            self.response_code = response.status_code
 
             if (response.status_code == 301) or (response.status_code == 302):
                 self.redirect = response['Location']
+
+            try:
+                if response.content:
+                    try:
+                        data = response.content.decode('utf-8')
+                    except UnicodeDecodeError:
+                        data = str(response.content)
+                    self.response_content = data[:CUT_DATA_INDEX]
+            except:
+                l.exception("Something terrible happend during loggin response.content")
+
+            try:
+                if hasattr(response, 'data'):
+                    self.response_data = str(response.data)[:CUT_DATA_INDEX]
+            except:
+                l.exception("Something terrible happend during loggin response.data")
+
+        try:
+            if request.GET:
+                self.request_get = str(request.GET)[:CUT_DATA_INDEX]
+        except:
+            l.exception("Something terrible happend during logging request.GET")
+
+        try:
+            if request.POST:
+                self.request_post = str(request.POST)[:CUT_DATA_INDEX]
+        except:
+            l.exception("Something terrible happend during logging request.POST")
+
+        try:
+            if request.body:
+                self.request_body = str(request.body)[:CUT_DATA_INDEX]
+        except:
+            l.exception("Something terrible happend during logging request.body")
 
         if commit:
             self.save()
