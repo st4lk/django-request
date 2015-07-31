@@ -28,7 +28,7 @@ class RequestMiddleware(object):
             return response
 
         if getattr(request, 'user', False):
-            if request.user.email in settings.REQUEST_IGNORE_USERNAME:
+            if request.user.is_authenticated() and request.user.email in settings.REQUEST_IGNORE_USERNAME:
                 return response
 
         r = Request()
