@@ -111,11 +111,11 @@ class Request(models.Model):
         # except:
         #     l.exception("Something terrible happend during logging request.POST")
 
-        try:
-            if request.body:
-                self.request_body = str(request.body)[:CUT_DATA_INDEX]
-        except:
-            l.exception("Something terrible happend during logging request.body")
+        # try:
+        #     if request.body:
+        #         self.request_body = str(request.body)[:CUT_DATA_INDEX]
+        # except:
+        #     l.exception("Something terrible happend during logging request.body")
 
         if commit:
             self.save()
